@@ -1,5 +1,5 @@
 import 'package:wt3k_ble/auxiliar/tratar_peso.dart';
-import 'package:wt3k_ble/constantes/wtbt.dart';
+import 'package:wt3k_ble/constantes/wt3k.dart';
 import 'package:wt3k_ble/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
@@ -125,11 +125,11 @@ class FindDevicesScreen extends StatelessWidget {
 class DeviceScreen extends StatelessWidget {
   final TratarPeso _tratarPeso = TratarPeso();
   BluetoothDevice device;
-  BluetoothService _wtBtService;
+  BluetoothService _pesoService;
   BluetoothCharacteristic _pesoCharacteristic;
   BluetoothCharacteristic _comandoCharacteristic;
-  var _buffer = List(255);//Buffer para armazenar os dados recebidos do WT3000-IR
-  var posicao = 0;//Indice do buffer
+  var _buffer = List<int>(255);//Buffer para armazenar os dados recebidos do WT3000-IR
+  var _posicao = 0;//Indice do buffer
 
   //Notificadores que auxiliam a alterar as partes da UI correspondente aos valores e status do peso
   final _bateriaNotifier = ValueNotifier<int>(0);
@@ -380,14 +380,14 @@ class DeviceScreen extends StatelessWidget {
 
     List<BluetoothService> services = await device.discoverServices();
     services.forEach((service) {
-      if (service.uuid == ConstantesWtbt.UUID_WTBT_SERVICE_SERIVCE) {
-        _wtBtService = service;
+      if (service.uuid == ConstantesWt3k.UUID_PESO_SERVICE_SERIVCE) {
+        _pesoService = service;
       }
     });
 
     // Reads all characteristics
-    for (BluetoothCharacteristic c in _wtBtService.characteristics) {
-      if (c.uuid == ConstantesWtbt.UUID_CHAR_PESO) {
+    for (BluetoothCharacteristic c in _pesoService.characteristics) {
+      if (c.uuid == ConstantesWt3k.UUID_CHAR_PESO) {
         _pesoCharacteristic = c;
       }
     }
@@ -398,11 +398,11 @@ class DeviceScreen extends StatelessWidget {
       bool isPodeTratar = false;
 
       data?.forEach((b) {
-        if (posicao >= _buffer.length) posicao = 0;
-        _buffer[posicao++] = b;
+        if (_posicao >= _buffer.length) _posicao = 0;
+        _buffer[_posicao++] = b;
 
-        if (posicao > 1) {
-          if ((_buffer[posicao - 2]) == 13 && (_buffer[posicao - 1]) == 10) {
+        if (_posicao > 1) {
+          if ((_buffer[_posicao - 2]) == 13 && (_buffer[_posicao - 1]) == 10) {
 
 
             /*
@@ -411,27 +411,27 @@ class DeviceScreen extends StatelessWidget {
                   * Se por exemplo, o buffer não tiver o tamanho esperado (27 no caso do WT3000-I-R), ele é descartado.
                   * */
 
-            isPodeTratar = true;
-            posicao = 0;
+            if (_tratarPeso.lerW01(_buffer, _posicao)) {
+              /*
+                Modificar os campos ValueBNotifiers faz com que os Widgets ValueListenableBuilder associados
+                se modifiquem automaticamente com os novos valores.
+              */
+
+              _bateriaNotifier.value = 0;
+              _isBrutoNotifier.value = _tratarPeso.isBruto;
+              _isEstavelNotifier.value = _tratarPeso.isEstavel;
+              _unidadeNotifier.value = _tratarPeso.unidade;
+              _campoPesoNotifier.value = _tratarPeso.pesoLiqFormatado;
+              _campoTaraNotifier.value =
+              "Tara: ${_tratarPeso.taraFormatada} ${_tratarPeso.unidade}";
+            }
+
+            _posicao = 0;
           }
         }
 
       });
 
-      if (isPodeTratar && _tratarPeso.lerW01(data)) {
-        /*
-        Modificar os campos ValueBNotifiers faz com que os Widgets ValueListenableBuilder associados
-        se modifiquem automaticamente com os novos valores.
-         */
-
-        _bateriaNotifier.value = _tratarPeso.imagemIndexBateria;
-        _isBrutoNotifier.value = _tratarPeso.isBruto;
-        _isEstavelNotifier.value = _tratarPeso.isEstavel;
-        _unidadeNotifier.value = _tratarPeso.unidade;
-        _campoPesoNotifier.value = _tratarPeso.pesoLiqFormatado;
-        _campoTaraNotifier.value =
-            "Tara: ${_tratarPeso.taraFormatada} ${_tratarPeso.unidade}";
-      }
     });
   }
 

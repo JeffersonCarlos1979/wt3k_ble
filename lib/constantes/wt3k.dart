@@ -1,7 +1,7 @@
 
 import 'package:flutter_blue/flutter_blue.dart';
 
-class ConstantesWtbt {
+class ConstantesWt3k {
     static String teste = "teste";
     //Serviços
     //static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
@@ -10,7 +10,7 @@ class ConstantesWtbt {
     //Characteristcs
     //static final String AT_CHAR_COMANDO = "00002B26-0000-1000-8000-00805f9b34fb";
     //static final String AT_CHAR_STATUS = "00002b21-0000-1000-8000-00805f9b34fb";
-    static final String AT_CHAR_PESO = "00002A98-0000-1000-8000-00805f9b34fb";
+    static final String AT_CHAR_PESO = "0000E813-0000-1000-8000-00805f9b34fb";
     //static final String AT_CHAR_SOFTWARE_REVISION = "00002A28-0000-1000-8000-00805f9b34fb";
     //Guid serviços
     static final Guid UUID_PESO_SERVICE_SERIVCE = Guid(AT_PESO_SERVICE);
