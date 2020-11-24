@@ -1,113 +1,431 @@
+import 'package:wt3k_ble/auxiliar/tratar_peso.dart';
+import 'package:wt3k_ble/constantes/wtbt.dart';
+import 'package:wt3k_ble/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_blue/flutter_blue.dart';
+
+//https://pub.dev/packages/flutter_blue
 
 void main() {
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-      ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      color: Colors.lightBlue,
+      home: StreamBuilder<BluetoothState>(
+          stream: FlutterBlue.instance.state,
+          initialData: BluetoothState.unknown,
+          builder: (c, snapshot) {
+            final state = snapshot.data;
+            if (state == BluetoothState.on) {
+              return DeviceScreen();
+            }
+            return BluetoothOffScreen(state: state);
+          }),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+class BluetoothOffScreen extends StatelessWidget {
+  const BluetoothOffScreen({Key key, this.state}) : super(key: key);
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  final BluetoothState state;
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
+      backgroundColor: Colors.lightBlue,
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
+            Icon(
+              Icons.bluetooth_disabled,
+              size: 200.0,
+              color: Colors.white54,
             ),
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
+              'Bluetooth Adapter is ${state != null ? state.toString().substring(15) : 'not available'}.',
+              style: Theme.of(context)
+                  .primaryTextTheme
+                  .subhead
+                  .copyWith(color: Colors.white),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+}
+
+class FindDevicesScreen extends StatelessWidget {
+  FindDevicesScreen({Key key}) : super(key: key) {
+    _startScan();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Find Devices'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: () => _startScan(),
+        child: SingleChildScrollView(
+          child: Column(
+            children: <Widget>[
+              StreamBuilder<List<ScanResult>>(
+                stream: FlutterBlue.instance.scanResults,
+                initialData: [],
+                builder: (c, snapshot) => Column(
+                  children: snapshot.data
+                      .map(
+                        (r) => ScanResultTile(
+                          result: r,
+                          onTap: () {
+                            FlutterBlue.instance.stopScan();
+                            Navigator.pop(context, r.device);
+                          },
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: StreamBuilder<bool>(
+        stream: FlutterBlue.instance.isScanning,
+        initialData: false,
+        builder: (c, snapshot) {
+          if (snapshot.data) {
+            return FloatingActionButton(
+              child: Icon(Icons.stop),
+              onPressed: () => FlutterBlue.instance.stopScan(),
+              backgroundColor: Colors.red,
+            );
+          } else {
+            return FloatingActionButton(
+                child: Icon(Icons.search), onPressed: () => _startScan());
+          }
+        },
+      ),
+    );
+  }
+
+  _startScan() {
+    FlutterBlue.instance.startScan(timeout: Duration(seconds: 10));
+  }
+}
+
+class DeviceScreen extends StatelessWidget {
+  final TratarPeso _tratarPeso = TratarPeso();
+  BluetoothDevice device;
+  BluetoothService _wtBtService;
+  BluetoothCharacteristic _pesoCharacteristic;
+  BluetoothCharacteristic _comandoCharacteristic;
+
+  //Notificadores que auxiliam a alterar as partes da UI correspondente aos valores e status do peso
+  final _bateriaNotifier = ValueNotifier<int>(0);
+  final _isBrutoNotifier = ValueNotifier<bool>(true);
+  final _isEstavelNotifier = ValueNotifier<bool>(true);
+  final _unidadeNotifier = ValueNotifier<String>('kg');
+  final _campoPesoNotifier = ValueNotifier<String>(TratarPeso.PESO_INVALIDO);
+  final _campoTaraNotifier =
+      ValueNotifier<String>('Tara: ${TratarPeso.PESO_INVALIDO} kg');
+
+  final _imagens = [
+    'images/bateria_25.png',
+    'images/bateria_50.png',
+    'images/bateria_75.png',
+    'images/bateria_100.png',
+  ];
+
+  DeviceScreen({Key key, this.device}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final larguraDaTela = MediaQuery.of(context).size.width;
+    final alturaDaTela = MediaQuery.of(context).size.height;
+    final paddingHorizontal = larguraDaTela /
+        40.0; //Apenas para ajustar os widgets em relação a tamanho da tela.
+    final paddingVertical = alturaDaTela / 61.6;
+    final paddinPadrao = paddingHorizontal;
+    final fonteSizePeso = larguraDaTela / 5.714286;
+    final fonteSizeTara = larguraDaTela / 16;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Exemplo WTBT-BR"),
+      ),
+      body: Container(
+        child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              //Informações do Peso
+              Expanded(
+                flex: 0,
+                child: Container(
+                  padding: EdgeInsets.only(
+                      left: paddingHorizontal, right: paddingHorizontal),
+                  height: alturaDaTela / 4,
+                  color: Colors.blue,
+                  child: Row(
+                    //Display com todas as informações de peso
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        flex: 4,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              //Tara e bateria
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(paddinPadrao),
+                                  //color: Colors.green,
+                                  child: ValueListenableBuilder(
+                                      valueListenable: _campoTaraNotifier,
+                                      builder: (BuildContext context,
+                                          String campoTara, _) {
+                                        return Text(
+                                          //Tara
+                                          campoTara,
+                                          style: TextStyle(
+                                            fontSize: fonteSizeTara, //50
+                                          ),
+                                        );
+                                      }),
+                                ),
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  flex: 1,
+                                  child: Container(
+                                    padding: EdgeInsets.all(paddinPadrao),
+                                    alignment: Alignment.centerRight,
+                                    //color: Colors.red,
+                                    child: ValueListenableBuilder(
+                                        valueListenable: _bateriaNotifier,
+                                        builder: (BuildContext context,
+                                            int imagemIndexBateria, _) {
+                                          return Image(
+                                            image: AssetImage(
+                                                _imagens[imagemIndexBateria]),
+                                          );
+                                        }),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Row(
+                                  //Estável, peso e unidade
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      //Estável
+                                      alignment: Alignment.bottomCenter,
+                                      padding: EdgeInsets.only(
+                                          bottom: paddingVertical * 3,
+                                          left: paddingHorizontal),
+                                      //color: Colors.blue,
+                                      child: ValueListenableBuilder(
+                                        valueListenable: _isEstavelNotifier,
+                                        builder: (BuildContext context,
+                                            bool isEstavel, _) {
+                                          if (isEstavel) {
+                                            return Image(
+                                                image: AssetImage(
+                                                    'images/estavel.png'));
+                                          } else {
+                                            //tem que retornar algo, então vou retornar uma caixa vazia
+                                            return SizedBox(
+                                              height: 10,
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                    Flexible(
+                                      fit: FlexFit.tight,
+                                      flex: 1,
+                                      child: Container(
+                                        //Peso
+                                        alignment: Alignment.bottomRight,
+                                        padding: EdgeInsets.only(
+                                            bottom: paddingVertical * 2,
+                                            right: paddingHorizontal),
+                                        //color: Colors.yellow,
+                                        child: ValueListenableBuilder(
+                                          valueListenable: _campoPesoNotifier,
+                                          builder: (BuildContext context,
+                                              String campoPeso, _) {
+                                            return Text(
+                                              //Peso
+                                              campoPeso,
+                                              style: TextStyle(
+                                                fontSize: fonteSizePeso, //140
+                                              ),
+                                              textAlign: TextAlign.end,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      //Unidade
+                                      alignment: Alignment.bottomCenter,
+                                      padding: EdgeInsets.only(
+                                          bottom: paddingVertical * 3,
+                                          right: paddingHorizontal),
+                                      child: ValueListenableBuilder(
+                                        valueListenable: _unidadeNotifier,
+                                        builder: (BuildContext context,
+                                            String unidade, _) {
+                                          return Text(
+                                            unidade,
+                                            style: TextStyle(
+                                              fontSize: fonteSizeTara, //50
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: FlatButton(
+                      child: Text(
+                        "Tarar",
+                        style: TextStyle(fontSize: fonteSizeTara),
+                      ),
+                      onPressed: () {
+                        _tarar();
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: FlatButton(
+                      child: Text(
+                        "Zerar",
+                        style: TextStyle(fontSize: fonteSizeTara),
+                      ),
+                      onPressed: () {
+                        _zerar();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              Expanded(
+                flex: 2,
+                child: Container(
+                  color: Colors.white,
+                ),
+              ),
+              Container(
+                child: ElevatedButton(
+                  onPressed: () {
+                    _selecionarPlataforma(context);
+                  },
+                  child: Text('Selecionar plataforma',
+                    style: TextStyle(fontSize: fonteSizeTara),
+                  ),
+                ),
+              ),
+            ]),
+      ),
+    );
+  }
+
+  void _selecionarPlataforma(BuildContext context) async {
+    await _pesoCharacteristic?.setNotifyValue(false);
+    device?.disconnect();
+
+    device = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => FindDevicesScreen()),
+    );
+    print('Device ${device?.name}');
+
+    if (device == null) return;
+
+    _conectar();
+  }
+
+  Future<void> _conectar() async {
+    await device.connect();
+
+    List<BluetoothService> services = await device.discoverServices();
+    services.forEach((service) {
+      if (service.uuid == ConstantesWtbt.UUID_WTBT_SERVICE_SERIVCE) {
+        _wtBtService = service;
+      }
+    });
+
+    // Reads all characteristics
+    for (BluetoothCharacteristic c in _wtBtService.characteristics) {
+      if (c.uuid == ConstantesWtbt.UUID_CHAR_PESO) {
+        _pesoCharacteristic = c;
+      } else if (c.uuid == ConstantesWtbt.UUID_CHAR_COMANDO) {
+        _comandoCharacteristic = c;
+      }
+    }
+
+    await _pesoCharacteristic.setNotifyValue(true);
+    _pesoCharacteristic.value.listen((data) {
+      if (_tratarPeso.lerWtBT_BR(data)) {
+        /*
+        Modificar os campos ValueBNotifiers faz com que os Widgets ValueListenableBuilder associados
+        se modifiquem automaticamente com os novos valores.
+         */
+
+        _bateriaNotifier.value = _tratarPeso.imagemIndexBateria;
+        _isBrutoNotifier.value = _tratarPeso.isBruto;
+        _isEstavelNotifier.value = _tratarPeso.isEstavel;
+        _unidadeNotifier.value = _tratarPeso.unidade;
+        _campoPesoNotifier.value = _tratarPeso.pesoLiqFormatado;
+        _campoTaraNotifier.value =
+            "Tara: ${_tratarPeso.taraFormatada} ${_tratarPeso.unidade}";
+      }
+    });
+  }
+
+  Future<void> _tarar() async {
+    _enviarComando("${Comandos.TARAR};");
+  }
+
+  Future<void> _zerar() async {
+    _enviarComando("${Comandos.ZERAR};");
+  }
+
+  Future<void> _enviarComando(String commandData) async {
+    var buff = commandData.codeUnits;
+
+    try {
+      _comandoCharacteristic.write(buff);
+    } catch (e) {
+      print(e);
+    }
   }
 }
