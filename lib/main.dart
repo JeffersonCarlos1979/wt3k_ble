@@ -1,8 +1,9 @@
 import 'package:wt3k_ble/auxiliar/tratar_peso.dart';
-import 'package:wt3k_ble/constantes/wt3k.dart';
 import 'package:wt3k_ble/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+
+import 'constantes/wt3k.dart';
 
 //https://pub.dev/packages/flutter_blue
 
@@ -140,12 +141,12 @@ class DeviceScreen extends StatelessWidget {
   final _campoTaraNotifier =
       ValueNotifier<String>('Tara: ${TratarPeso.PESO_INVALIDO} kg');
 
-  final _imagens = [
-    'images/bateria_25.png',
-    'images/bateria_50.png',
-    'images/bateria_75.png',
-    'images/bateria_100.png',
-  ];
+  double _paddingVertical;
+  double _paddinPadrao;
+  double _fonteSizePeso;
+  double _fonteSizeTara;
+
+  final indicador = Indicador.WT3000_I_PRO;// Altere de acordo com o indicador.
 
   DeviceScreen({Key key, this.device}) : super(key: key);
 
@@ -155,10 +156,24 @@ class DeviceScreen extends StatelessWidget {
     final alturaDaTela = MediaQuery.of(context).size.height;
     final paddingHorizontal = larguraDaTela /
         40.0; //Apenas para ajustar os widgets em relação a tamanho da tela.
-    final paddingVertical = alturaDaTela / 61.6;
-    final paddinPadrao = paddingHorizontal;
-    final fonteSizePeso = larguraDaTela / 5.714286;
-    final fonteSizeTara = larguraDaTela / 16;
+    _paddingVertical = alturaDaTela / 61.6;
+    _paddinPadrao = paddingHorizontal;
+    _fonteSizePeso = larguraDaTela / 5.714286;
+    _fonteSizeTara = larguraDaTela / 16;
+    Guid _uuidPesoService;
+    Guid _uuidPesoCharacteristic;
+
+    //Seleciona o serviço e a Characterisc de acordo com o indicador.
+    switch(indicador){
+      case Indicador.WT3000_IR:
+        _uuidPesoService = Wt3kIR.UUID_PESO_SERVICE;
+        _uuidPesoCharacteristic = Wt3kIR.UUID_PESO_CHARACTERISTIC;
+        break;
+      case Indicador.WT3000_I_PRO:
+        _uuidPesoService = Wt3kPRO.UUID_PESO_SERVICE;
+        _uuidPesoCharacteristic = Wt3kPRO.UUID_PESO_CHARACTERISTIC;
+        break;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -191,7 +206,7 @@ class DeviceScreen extends StatelessWidget {
                               //Tara e bateria
                               children: [
                                 Container(
-                                  padding: EdgeInsets.all(paddinPadrao),
+                                  padding: EdgeInsets.all(_paddinPadrao),
                                   //color: Colors.green,
                                   child: ValueListenableBuilder(
                                       valueListenable: _campoTaraNotifier,
@@ -201,7 +216,7 @@ class DeviceScreen extends StatelessWidget {
                                           //Tara
                                           campoTara,
                                           style: TextStyle(
-                                            fontSize: fonteSizeTara, //50
+                                            fontSize: _fonteSizeTara, //50
                                           ),
                                         );
                                       }),
@@ -210,16 +225,15 @@ class DeviceScreen extends StatelessWidget {
                                   fit: FlexFit.tight,
                                   flex: 1,
                                   child: Container(
-                                    padding: EdgeInsets.all(paddinPadrao),
+                                    padding: EdgeInsets.all(_paddinPadrao),
                                     alignment: Alignment.centerRight,
                                     //color: Colors.red,
                                     child: ValueListenableBuilder(
                                         valueListenable: _bateriaNotifier,
                                         builder: (BuildContext context,
                                             int imagemIndexBateria, _) {
-                                          return Image(
-                                            image: AssetImage(
-                                                _imagens[imagemIndexBateria]),
+                                          return SizedBox(
+                                            height: 10,
                                           );
                                         }),
                                   ),
@@ -237,7 +251,7 @@ class DeviceScreen extends StatelessWidget {
                                       //Estável
                                       alignment: Alignment.bottomCenter,
                                       padding: EdgeInsets.only(
-                                          bottom: paddingVertical * 3,
+                                          bottom: _paddingVertical * 3,
                                           left: paddingHorizontal),
                                       //color: Colors.blue,
                                       child: ValueListenableBuilder(
@@ -264,7 +278,7 @@ class DeviceScreen extends StatelessWidget {
                                         //Peso
                                         alignment: Alignment.bottomRight,
                                         padding: EdgeInsets.only(
-                                            bottom: paddingVertical * 2,
+                                            bottom: _paddingVertical * 2,
                                             right: paddingHorizontal),
                                         //color: Colors.yellow,
                                         child: ValueListenableBuilder(
@@ -275,7 +289,7 @@ class DeviceScreen extends StatelessWidget {
                                               //Peso
                                               campoPeso,
                                               style: TextStyle(
-                                                fontSize: fonteSizePeso, //140
+                                                fontSize: _fonteSizePeso, //140
                                               ),
                                               textAlign: TextAlign.end,
                                             );
@@ -287,7 +301,7 @@ class DeviceScreen extends StatelessWidget {
                                       //Unidade
                                       alignment: Alignment.bottomCenter,
                                       padding: EdgeInsets.only(
-                                          bottom: paddingVertical * 3,
+                                          bottom: _paddingVertical * 3,
                                           right: paddingHorizontal),
                                       child: ValueListenableBuilder(
                                         valueListenable: _unidadeNotifier,
@@ -296,7 +310,7 @@ class DeviceScreen extends StatelessWidget {
                                           return Text(
                                             unidade,
                                             style: TextStyle(
-                                              fontSize: fonteSizeTara, //50
+                                              fontSize: _fonteSizeTara, //50
                                             ),
                                           );
                                         },
@@ -311,34 +325,7 @@ class DeviceScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: FlatButton(
-                      child: Text(
-                        "Tarar",
-                        style: TextStyle(fontSize: fonteSizeTara),
-                      ),
-                      onPressed: () {
-                        _tarar();
-                      },
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: FlatButton(
-                      child: Text(
-                        "Zerar",
-                        style: TextStyle(fontSize: fonteSizeTara),
-                      ),
-                      onPressed: () {
-                        _zerar();
-                      },
-                    ),
-                  ),
-                ],
-              ),
+              _BotoesTaraZero(),
               Expanded(
                 flex: 2,
                 child: Container(
@@ -351,7 +338,7 @@ class DeviceScreen extends StatelessWidget {
                     _selecionarPlataforma(context);
                   },
                   child: Text('Selecionar plataforma',
-                    style: TextStyle(fontSize: fonteSizeTara),
+                    style: TextStyle(fontSize: _fonteSizeTara),
                   ),
                 ),
               ),
@@ -380,14 +367,14 @@ class DeviceScreen extends StatelessWidget {
 
     List<BluetoothService> services = await device.discoverServices();
     services.forEach((service) {
-      if (service.uuid == ConstantesWt3k.UUID_PESO_SERVICE_SERIVCE) {
+      if (service.uuid == Wt3kIR.UUID_PESO_SERVICE) {
         _pesoService = service;
       }
     });
 
     // Reads all characteristics
     for (BluetoothCharacteristic c in _pesoService.characteristics) {
-      if (c.uuid == ConstantesWt3k.UUID_CHAR_PESO) {
+      if (c.uuid == Wt3kIR.UUID_PESO_CHARACTERISTIC) {
         _pesoCharacteristic = c;
       }
     }
@@ -452,4 +439,45 @@ class DeviceScreen extends StatelessWidget {
       print(e);
     }
   }
+
+  Widget _BotoesTaraZero() {
+    /*
+    Só exibe os botões se for o WT3000-IR pois, o WT3000-IR não aceita comandos.
+     */
+    if(indicador == Indicador.WT3000_I_PRO){
+      return SizedBox(
+        height: 10,
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          flex: 1,
+          child: FlatButton(
+            child: Text(
+              "Tarar",
+              style: TextStyle(fontSize: _fonteSizeTara),
+            ),
+            onPressed: () {
+              _tarar();
+            },
+          ),
+        ),
+        Expanded(
+          flex: 1,
+          child: FlatButton(
+            child: Text(
+              "Zerar",
+              style: TextStyle(fontSize: _fonteSizeTara),
+            ),
+            onPressed: () {
+              _zerar();
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }
+

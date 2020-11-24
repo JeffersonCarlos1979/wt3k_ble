@@ -34,14 +34,16 @@ class TratarPeso {
     String strBruto;
     String status;
 
-    if (bytesToRead != 27) {
+    //WT3000-IR transmite 27 bytes
+    //WT3000-I-PRO transmite 47 bytes
+    if (bytesToRead != 27 && bytesToRead != 47) {
       return false;
     }
 
     status = new String.fromCharCodes(data, 0, 1);
-    strBruto = new String.fromCharCodes(data, 2, 9);
-    strTara = new String.fromCharCodes(data, 10, 17);
-    strPeso = new String.fromCharCodes(data, 18, 25);
+    strBruto = new String.fromCharCodes(data, 2, 9).replaceAll(",", ".");;
+    strTara = new String.fromCharCodes(data, 10, 17).replaceAll(",", ".");;
+    strPeso = new String.fromCharCodes(data, 18, 25).replaceAll(",", ".");;
 
     if (status == "0") {
       isEstavel = true;

@@ -1,31 +1,34 @@
 
 import 'package:flutter_blue/flutter_blue.dart';
 
-class ConstantesWt3k {
-    static String teste = "teste";
+class Indicador{
+    /*
+    Para saber a diferença visual entre o WT3000-IR e o WT3000-PRO, é só visitar a página dos indicadores:
+     */
+    static const int WT3000_IR = 0; //https://www.weightech.com.br/detalhes.asp?id=502013&n=WT3000-iR;
+    static const int WT3000_I_PRO = 1; //https://www.weightech.com.br/detalhes.asp?id=501750&n=WT3000-i-PRO
+}
+
+class Wt3kIR {
     //Serviços
-    //static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
-    static final String AT_PESO_SERVICE = "0000E711-0000-1000-8000-00805f9b34fb";
-    //static final String AT_DEVICE_INFORMATION_SERVICE = "0000180A-0000-1000-8000-00805f9b34fb";
+    static const String AT_PESO_SERVICE = "0000E711-0000-1000-8000-00805f9b34fb";
     //Characteristcs
-    //static final String AT_CHAR_COMANDO = "00002B26-0000-1000-8000-00805f9b34fb";
-    //static final String AT_CHAR_STATUS = "00002b21-0000-1000-8000-00805f9b34fb";
-    static final String AT_CHAR_PESO = "0000E813-0000-1000-8000-00805f9b34fb";
-    //static final String AT_CHAR_SOFTWARE_REVISION = "00002A28-0000-1000-8000-00805f9b34fb";
+    static const String AT_PESO_CHARACTERISTIC = "0000E813-0000-1000-8000-00805f9b34fb";
     //Guid serviços
-    static final Guid UUID_PESO_SERVICE_SERIVCE = Guid(AT_PESO_SERVICE);
-    //static final Guid UUID_DEVICE_INFORMATION_SERIVCE = Guid(AT_DEVICE_INFORMATION_SERVICE);
+    static final Guid UUID_PESO_SERVICE = Guid(AT_PESO_SERVICE);
     //Guid characteristics
-    //static final Guid UUID_CHAR_COMANDO = Guid(AT_CHAR_COMANDO);
-    //static final Guid UUID_CHAR_STATUS = Guid(AT_CHAR_STATUS);
-    static final Guid UUID_CHAR_PESO = Guid(AT_CHAR_PESO);
-    //static final Guid UUID_CHAR_SOFTWARE_REVISION = Guid(AT_CHAR_SOFTWARE_REVISION);
-    //Bateria
-    static final int BATERIA_SEM_STATUS = -1;
-    static final int BATERIA_25 = 0;
-    static final int BATERIA_50 = 1;
-    static final int BATERIA_75 = 2;
-    static final int BATERIA_100 = 3;
+    static final Guid UUID_PESO_CHARACTERISTIC = Guid(AT_PESO_CHARACTERISTIC);
+}
+
+class Wt3kPRO {
+    //Serviços
+    static const String AT_PESO_SERVICE = "0000FFE0-0000-1000-8000-00805f9b34fb";
+    //Characteristcs
+    static const String AT_PESO_CHARACTERISTIC = "0000FFE1-0000-1000-8000-00805f9b34fb";
+    //Guid serviços
+    static final Guid UUID_PESO_SERVICE = Guid(AT_PESO_SERVICE);
+    //Guid characteristics
+    static final Guid UUID_PESO_CHARACTERISTIC = Guid(AT_PESO_CHARACTERISTIC);
 }
 
 class Comandos{
