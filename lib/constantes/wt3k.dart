@@ -29,8 +29,8 @@ class ConstantesWt3k {
 }
 
 class Comandos{
-    static String ZERAR = "CDL";
-    static String TARAR = "TAR";
+    static String ZERAR = "MZ\r\n";
+    static String TARAR = "MT\r\n";
 }
 
 

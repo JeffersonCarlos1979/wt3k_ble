@@ -127,7 +127,7 @@ class DeviceScreen extends StatelessWidget {
   BluetoothDevice device;
   BluetoothService _pesoService;
   BluetoothCharacteristic _pesoCharacteristic;
-  BluetoothCharacteristic _comandoCharacteristic;
+  //BluetoothCharacteristic _comandoCharacteristic;
   var _buffer = List<int>(255);//Buffer para armazenar os dados recebidos do WT3000-IR
   var _posicao = 0;//Indice do buffer
 
@@ -447,7 +447,7 @@ class DeviceScreen extends StatelessWidget {
     var buff = commandData.codeUnits;
 
     try {
-      _comandoCharacteristic.write(buff);
+      //_comandoCharacteristic.write(buff);
     } catch (e) {
       print(e);
     }
