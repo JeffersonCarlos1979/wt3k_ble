@@ -128,6 +128,8 @@ class DeviceScreen extends StatelessWidget {
   BluetoothService _wtBtService;
   BluetoothCharacteristic _pesoCharacteristic;
   BluetoothCharacteristic _comandoCharacteristic;
+  var _buffer = List(255);//Buffer para armazenar os dados recebidos do WT3000-IR
+  var posicao = 0;//Indice do buffer
 
   //Notificadores que auxiliam a alterar as partes da UI correspondente aos valores e status do peso
   final _bateriaNotifier = ValueNotifier<int>(0);
@@ -387,14 +389,36 @@ class DeviceScreen extends StatelessWidget {
     for (BluetoothCharacteristic c in _wtBtService.characteristics) {
       if (c.uuid == ConstantesWtbt.UUID_CHAR_PESO) {
         _pesoCharacteristic = c;
-      } else if (c.uuid == ConstantesWtbt.UUID_CHAR_COMANDO) {
-        _comandoCharacteristic = c;
       }
     }
 
     await _pesoCharacteristic.setNotifyValue(true);
     _pesoCharacteristic.value.listen((data) {
-      if (_tratarPeso.lerWtBT_BR(data)) {
+
+      bool isPodeTratar = false;
+
+      data?.forEach((b) {
+        if (posicao >= _buffer.length) posicao = 0;
+        _buffer[posicao++] = b;
+
+        if (posicao > 1) {
+          if ((_buffer[posicao - 2]) == 13 && (_buffer[posicao - 1]) == 10) {
+
+
+            /*
+                  * Quando encontra a sequencia [CR][LF] no buffer, ele envia para a rotina de tratamento.
+                  * Essa rotina vai validar e extrair as informações de peso.
+                  * Se por exemplo, o buffer não tiver o tamanho esperado (27 no caso do WT3000-I-R), ele é descartado.
+                  * */
+
+            isPodeTratar = true;
+            posicao = 0;
+          }
+        }
+
+      });
+
+      if (isPodeTratar && _tratarPeso.lerW01(data)) {
         /*
         Modificar os campos ValueBNotifiers faz com que os Widgets ValueListenableBuilder associados
         se modifiquem automaticamente com os novos valores.
