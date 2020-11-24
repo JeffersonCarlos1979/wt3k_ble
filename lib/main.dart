@@ -436,18 +436,18 @@ class DeviceScreen extends StatelessWidget {
   }
 
   Future<void> _tarar() async {
-    _enviarComando("${Comandos.TARAR};");
+    _enviarComando("${Comandos.TARAR}");
   }
 
   Future<void> _zerar() async {
-    _enviarComando("${Comandos.ZERAR};");
+    _enviarComando("${Comandos.ZERAR}");
   }
 
   Future<void> _enviarComando(String commandData) async {
     var buff = commandData.codeUnits;
 
     try {
-      //_comandoCharacteristic.write(buff);
+      _pesoCharacteristic.write(buff);
     } catch (e) {
       print(e);
     }
