@@ -40,6 +40,7 @@ class TratarPeso {
       return false;
     }
 
+
     status = new String.fromCharCodes(data, 0, 1);
     strBruto = new String.fromCharCodes(data, 2, 9).replaceAll(",", ".");;
     strTara = new String.fromCharCodes(data, 10, 17).replaceAll(",", ".");;

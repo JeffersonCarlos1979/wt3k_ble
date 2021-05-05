@@ -381,7 +381,6 @@ class DeviceScreen extends StatelessWidget {
 
     await _pesoCharacteristic.setNotifyValue(true);
     _pesoCharacteristic.value.listen((data) {
-
       bool isPodeTratar = false;
 
       data?.forEach((b) {
@@ -400,7 +399,7 @@ class DeviceScreen extends StatelessWidget {
 
             if (_tratarPeso.lerW01(_buffer, _posicao)) {
               /*
-                Modificar os campos ValueBNotifiers faz com que os Widgets ValueListenableBuilder associados
+                Modificar os campos ValueNotifiers faz com que os Widgets ValueListenableBuilder associados
                 se modifiquem automaticamente com os novos valores.
               */
 
@@ -442,7 +441,7 @@ class DeviceScreen extends StatelessWidget {
 
   Widget _BotoesTaraZero() {
     /*
-    Só exibe os botões se for o WT3000-IR pois, o WT3000-IR não aceita comandos.
+    Só exibe os botões se for o WT3000-IR pois, o WT3000-I-Pro não aceita comandos.
      */
     if(indicador == Indicador.WT3000_I_PRO){
       return SizedBox(
