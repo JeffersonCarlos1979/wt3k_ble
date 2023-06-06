@@ -1,29 +1,21 @@
-import 'dart:math';
-import 'bit_converter.dart';
-import 'package:intl/intl.dart';
-
-/**
- * Created by jeffe on 20/11/2020.
- */
-
 class TratarPeso {
-  static final String PESO_INVALIDO = "------";
-  static final String FALHA_AD = "F. A/D";
-  static final String SOBRECARGA = "++OL++";
+  static final String pesoInvalido = "------";
+  static final String falhaAd = "F. A/D";
+  static final String sobrecarga = "++OL++";
 
   bool isPesoOk = false;
-  int casasDecimais;
-  double pesoLiq;
-  double tara;
-  double pesoBruto;
-  bool isBruto;
-  bool isEstavel;
-  bool isFalhaAd;
-  String pesoLiqFormatado;
-  String taraFormatada;
+  int casasDecimais = 0;
+  double pesoLiq = 0.0;
+  double tara = 0.0;
+  double pesoBruto = 0.0;
+  bool isBruto = false;
+  bool isEstavel = false;
+  bool isFalhaAd = false;
+  String pesoLiqFormatado = pesoInvalido;
+  String taraFormatada = pesoInvalido;
   String unidade = 'kg';
 
-  bool isSobrecarga;
+  bool isSobrecarga = false;
 
   //Essa funçãoretorna true se o dado for válido
   //Formato W01 é comum a vários indicadores da Weightech como
@@ -40,11 +32,10 @@ class TratarPeso {
       return false;
     }
 
-
     status = new String.fromCharCodes(data, 0, 1);
-    strBruto = new String.fromCharCodes(data, 2, 9).replaceAll(",", ".");;
-    strTara = new String.fromCharCodes(data, 10, 17).replaceAll(",", ".");;
-    strPeso = new String.fromCharCodes(data, 18, 25).replaceAll(",", ".");;
+    strBruto = new String.fromCharCodes(data, 2, 9).replaceAll(",", ".");
+    strTara = new String.fromCharCodes(data, 10, 17).replaceAll(",", ".");
+    strPeso = new String.fromCharCodes(data, 18, 25).replaceAll(",", ".");
 
     if (status == "0") {
       isEstavel = true;
@@ -61,11 +52,11 @@ class TratarPeso {
       isSobrecarga = false;
     }
 
-    try{
+    try {
       pesoLiq = double.parse(strPeso);
       tara = double.parse(strTara);
       pesoBruto = double.parse(strBruto);
-    }catch (e){
+    } catch (e) {
       return false;
     }
 

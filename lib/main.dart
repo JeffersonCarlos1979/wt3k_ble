@@ -1,8 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:wt3k_ble/auxiliar/tratar_peso.dart';
 import 'package:wt3k_ble/widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_blue/flutter_blue.dart';
-
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'constantes/wt3k.dart';
 
 //https://pub.dev/packages/flutter_blue
@@ -17,7 +19,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       color: Colors.lightBlue,
       home: StreamBuilder<BluetoothState>(
-          stream: FlutterBlue.instance.state,
+          stream: FlutterBluePlus.instance.state,
           initialData: BluetoothState.unknown,
           builder: (c, snapshot) {
             final state = snapshot.data;
@@ -31,9 +33,9 @@ class MyApp extends StatelessWidget {
 }
 
 class BluetoothOffScreen extends StatelessWidget {
-  const BluetoothOffScreen({Key key, this.state}) : super(key: key);
+  const BluetoothOffScreen({super.key, this.state});
 
-  final BluetoothState state;
+  final BluetoothState? state;
 
   @override
   Widget build(BuildContext context) {
@@ -52,8 +54,8 @@ class BluetoothOffScreen extends StatelessWidget {
               'Bluetooth Adapter is ${state != null ? state.toString().substring(15) : 'not available'}.',
               style: Theme.of(context)
                   .primaryTextTheme
-                  .subhead
-                  .copyWith(color: Colors.white),
+                  .headlineMedium
+                  ?.copyWith(color: Colors.white),
             ),
           ],
         ),
@@ -63,7 +65,7 @@ class BluetoothOffScreen extends StatelessWidget {
 }
 
 class FindDevicesScreen extends StatelessWidget {
-  FindDevicesScreen({Key key}) : super(key: key) {
+  FindDevicesScreen({super.key}) {
     _startScan();
   }
 
@@ -79,77 +81,97 @@ class FindDevicesScreen extends StatelessWidget {
           child: Column(
             children: <Widget>[
               StreamBuilder<List<ScanResult>>(
-                stream: FlutterBlue.instance.scanResults,
+                stream: FlutterBluePlus.instance.scanResults,
                 initialData: [],
-                builder: (c, snapshot) => Column(
-                  children: snapshot.data
-                      .map(
-                        (r) => ScanResultTile(
-                          result: r,
-                          onTap: () {
-                            FlutterBlue.instance.stopScan();
-                            Navigator.pop(context, r.device);
-                          },
-                        ),
-                      )
-                      .toList(),
-                ),
+                builder: (c, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Container();
+                  }
+                  return Column(
+                    children: snapshot.data!
+                        .map(
+                          (r) => ScanResultTile(
+                            result: r,
+                            onTap: () {
+                              FlutterBluePlus.instance.stopScan();
+                              Navigator.pop(context, r.device);
+                            },
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
               ),
             ],
           ),
         ),
       ),
       floatingActionButton: StreamBuilder<bool>(
-        stream: FlutterBlue.instance.isScanning,
+        stream: FlutterBluePlus.instance.isScanning,
         initialData: false,
         builder: (c, snapshot) {
-          if (snapshot.data) {
-            return FloatingActionButton(
-              child: Icon(Icons.stop),
-              onPressed: () => FlutterBlue.instance.stopScan(),
-              backgroundColor: Colors.red,
-            );
-          } else {
-            return FloatingActionButton(
-                child: Icon(Icons.search), onPressed: () => _startScan());
-          }
+          final isScanning = snapshot.data;
+          return FloatingActionButton(
+            child: isScanning == true ? Icon(Icons.stop) : Icon(Icons.search),
+            onPressed: () => isScanning == null
+                ? null
+                : isScanning
+                    ? FlutterBluePlus.instance.stopScan()
+                    : _startScan(),
+            backgroundColor: isScanning == true ? null : Colors.red,
+          );
         },
       ),
     );
   }
 
   _startScan() {
-    FlutterBlue.instance.startScan(timeout: Duration(seconds: 10));
+    FlutterBluePlus.instance.startScan(timeout: Duration(seconds: 10));
   }
 }
 
-class DeviceScreen extends StatelessWidget {
+class DeviceScreen extends StatefulWidget {
+  DeviceScreen({super.key});
+  @override
+  State<DeviceScreen> createState() => _DeviceScreenState();
+}
+
+class _DeviceScreenState extends State<DeviceScreen> {
   final TratarPeso _tratarPeso = TratarPeso();
-  BluetoothDevice device;
-  BluetoothService _pesoService;
-  BluetoothCharacteristic _pesoCharacteristic;
-  //BluetoothCharacteristic _comandoCharacteristic;
-  var _buffer = List<int>(255);//Buffer para armazenar os dados recebidos do WT3000-IR
-  var _posicao = 0;//Indice do buffer
+  BluetoothDevice? _device;
+  BluetoothService? _pesoService;
 
-  //Notificadores que auxiliam a alterar as partes da UI correspondente aos valores e status do peso
+  BluetoothCharacteristic? _pesoCharacteristic;
+
+  ///Buffer para armazenar os dados recebidos do WT3000-IR
+  final _buffer = List.filled(255, 0);
+
+  var _posicao = 0;
+  //Indice do buffer
   final _bateriaNotifier = ValueNotifier<int>(0);
+
   final _isBrutoNotifier = ValueNotifier<bool>(true);
+
   final _isEstavelNotifier = ValueNotifier<bool>(true);
+
   final _unidadeNotifier = ValueNotifier<String>('kg');
-  final _campoPesoNotifier = ValueNotifier<String>(TratarPeso.PESO_INVALIDO);
+
+  final _campoPesoNotifier = ValueNotifier<String>(TratarPeso.pesoInvalido);
+
   final _campoTaraNotifier =
-      ValueNotifier<String>('Tara: ${TratarPeso.PESO_INVALIDO} kg');
+      ValueNotifier<String>('Tara: ${TratarPeso.pesoInvalido} kg');
 
-  double _paddingVertical;
-  double _paddinPadrao;
-  double _fonteSizePeso;
-  double _fonteSizeTara;
+  double _paddingVertical = 0.0;
 
-  final indicador = Indicador.WT3000_I_PRO;// Altere de acordo com o indicador.
+  double _paddinPadrao = 0.0;
 
-  DeviceScreen({Key key, this.device}) : super(key: key);
+  double _fonteSizePeso = 0.0;
 
+  double _fonteSizeTara = 0.0;
+
+  var indicador = Indicador.WT3000_IR;
+
+  StreamSubscription<List<int>>? _pesoSubscription;
   @override
   Widget build(BuildContext context) {
     final larguraDaTela = MediaQuery.of(context).size.width;
@@ -160,20 +182,6 @@ class DeviceScreen extends StatelessWidget {
     _paddinPadrao = paddingHorizontal;
     _fonteSizePeso = larguraDaTela / 5.714286;
     _fonteSizeTara = larguraDaTela / 16;
-    Guid _uuidPesoService;
-    Guid _uuidPesoCharacteristic;
-
-    //Seleciona o serviço e a Characterisc de acordo com o indicador.
-    switch(indicador){
-      case Indicador.WT3000_IR:
-        _uuidPesoService = Wt3kIR.UUID_PESO_SERVICE;
-        _uuidPesoCharacteristic = Wt3kIR.UUID_PESO_CHARACTERISTIC;
-        break;
-      case Indicador.WT3000_I_PRO:
-        _uuidPesoService = Wt3kPRO.UUID_PESO_SERVICE;
-        _uuidPesoCharacteristic = Wt3kPRO.UUID_PESO_CHARACTERISTIC;
-        break;
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -325,7 +333,7 @@ class DeviceScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              _BotoesTaraZero(),
+              _botoesTaraZero(),
               Expanded(
                 flex: 2,
                 child: Container(
@@ -337,7 +345,8 @@ class DeviceScreen extends StatelessWidget {
                   onPressed: () {
                     _selecionarPlataforma(context);
                   },
-                  child: Text('Selecionar plataforma',
+                  child: Text(
+                    'Selecionar plataforma',
                     style: TextStyle(fontSize: _fonteSizeTara),
                   ),
                 ),
@@ -349,48 +358,73 @@ class DeviceScreen extends StatelessWidget {
 
   void _selecionarPlataforma(BuildContext context) async {
     await _pesoCharacteristic?.setNotifyValue(false);
-    device?.disconnect();
+    _device?.disconnect();
 
-    device = await Navigator.push(
+    _device = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => FindDevicesScreen()),
     );
-    print('Device ${device?.name}');
+    print('Device ${_device?.name}');
 
-    if (device == null) return;
+    if (_device == null) return;
 
     _conectar();
   }
 
   Future<void> _conectar() async {
-    await device.connect();
+    await _device!.connect();
 
-    List<BluetoothService> services = await device.discoverServices();
-    services.forEach((service) {
-      if (service.uuid == Wt3kIR.UUID_PESO_SERVICE) {
+    var uuidPesoCharacteristic = Wt3kPRO.uuidPesoCharacteristic;
+    _pesoService = null;
+    List<BluetoothService> services = await _device!.discoverServices();
+
+    //Seleciona o indicador e a Characterisc de acordo com o service.
+    for (var service in services) {
+      if (service.uuid == Wt3kIR.uuidPesoService) {
         _pesoService = service;
-      }
-    });
-
-    // Reads all characteristics
-    for (BluetoothCharacteristic c in _pesoService.characteristics) {
-      if (c.uuid == Wt3kIR.UUID_PESO_CHARACTERISTIC) {
-        _pesoCharacteristic = c;
+        uuidPesoCharacteristic = Wt3kIR.uuidPesoCharacteristic;
+        break;
+      } else if (service.uuid == Wt3kPRO.uuidPesoService) {
+        _pesoService = service;
+        uuidPesoCharacteristic = Wt3kPRO.uuidPesoCharacteristic;
+        break;
       }
     }
 
-    await _pesoCharacteristic.setNotifyValue(true);
-    _pesoCharacteristic.value.listen((data) {
-      bool isPodeTratar = false;
+    if (_pesoService == null) {
+      if (kDebugMode) {
+        print('Não foi possível localizar o serviço');
+      }
+      return;
+    }
 
-      data?.forEach((b) {
+    // Reads all characteristics
+    _pesoCharacteristic = null;
+    for (var c in _pesoService!.characteristics) {
+      if (c.uuid == uuidPesoCharacteristic) {
+        _pesoCharacteristic = c;
+        break;
+      }
+    }
+
+    if (_pesoCharacteristic == null) {
+      if (kDebugMode) {
+        print('Não foi possível localizar o charactristic');
+      }
+      return;
+    }
+
+    //Habilita o notify/indicator do dispositivo para começar a receber a transmissão de peso
+    await _pesoCharacteristic!.setNotifyValue(true);
+
+    await _pesoSubscription?.cancel();
+    _pesoSubscription = _pesoCharacteristic!.value.listen((data) {
+      data.forEach((b) {
         if (_posicao >= _buffer.length) _posicao = 0;
         _buffer[_posicao++] = b;
 
         if (_posicao > 1) {
           if ((_buffer[_posicao - 2]) == 13 && (_buffer[_posicao - 1]) == 10) {
-
-
             /*
                   * Quando encontra a sequencia [CR][LF] no buffer, ele envia para a rotina de tratamento.
                   * Essa rotina vai validar e extrair as informações de peso.
@@ -409,41 +443,39 @@ class DeviceScreen extends StatelessWidget {
               _unidadeNotifier.value = _tratarPeso.unidade;
               _campoPesoNotifier.value = _tratarPeso.pesoLiqFormatado;
               _campoTaraNotifier.value =
-              "Tara: ${_tratarPeso.taraFormatada} ${_tratarPeso.unidade}";
+                  "Tara: ${_tratarPeso.taraFormatada} ${_tratarPeso.unidade}";
             }
 
             _posicao = 0;
           }
         }
-
       });
-
     });
   }
 
   Future<void> _tarar() async {
-    _enviarComando("${Comandos.TARAR}");
+    _enviarComando("${Comandos.tarar}");
   }
 
   Future<void> _zerar() async {
-    _enviarComando("${Comandos.ZERAR}");
+    _enviarComando("${Comandos.zerar}");
   }
 
   Future<void> _enviarComando(String commandData) async {
     var buff = commandData.codeUnits;
 
     try {
-      _pesoCharacteristic.write(buff);
+      _pesoCharacteristic?.write(buff);
     } catch (e) {
       print(e);
     }
   }
 
-  Widget _BotoesTaraZero() {
+  Widget _botoesTaraZero() {
     /*
     Só exibe os botões se for o WT3000-IR pois, o WT3000-I-Pro não aceita comandos.
      */
-    if(indicador == Indicador.WT3000_I_PRO){
+    if (indicador == Indicador.WT3000_IR) {
       return SizedBox(
         height: 10,
       );
@@ -453,7 +485,7 @@ class DeviceScreen extends StatelessWidget {
       children: [
         Expanded(
           flex: 1,
-          child: FlatButton(
+          child: ElevatedButton(
             child: Text(
               "Tarar",
               style: TextStyle(fontSize: _fonteSizeTara),
@@ -465,7 +497,7 @@ class DeviceScreen extends StatelessWidget {
         ),
         Expanded(
           flex: 1,
-          child: FlatButton(
+          child: ElevatedButton(
             child: Text(
               "Zerar",
               style: TextStyle(fontSize: _fonteSizeTara),
@@ -479,4 +511,3 @@ class DeviceScreen extends StatelessWidget {
     );
   }
 }
-
