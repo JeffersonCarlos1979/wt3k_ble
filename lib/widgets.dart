@@ -270,7 +270,8 @@ class DescriptorTile extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .bodyLarge //mudei aqui
-                  ?.copyWith(color: Theme.of(context).textTheme.bodySmall?.color))
+                  ?.copyWith(
+                      color: Theme.of(context).textTheme.bodySmall?.color))
         ],
       ),
       subtitle: StreamBuilder<List<int>>(

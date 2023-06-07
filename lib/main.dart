@@ -140,7 +140,6 @@ class _DeviceScreenState extends State<DeviceScreen> {
   final TratarPeso _tratarPeso = TratarPeso();
   BluetoothDevice? _device;
   BluetoothService? _pesoService;
-
   BluetoothCharacteristic? _pesoCharacteristic;
 
   ///Buffer para armazenar os dados recebidos do WT3000-IR
