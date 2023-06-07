@@ -481,7 +481,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
     /*
     Só exibe os botões se for o WT3000-IR pois, o WT3000-I-Pro não aceita comandos.
      */
-    if (indicador == Indicador.wt3000Ir) {
+    if (indicador == Indicador.wt3000iPro) {
       return const SizedBox(
         height: 10,
       );
