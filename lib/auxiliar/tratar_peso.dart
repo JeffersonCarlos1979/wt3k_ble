@@ -1,7 +1,7 @@
 class TratarPeso {
-  static final String pesoInvalido = "------";
-  static final String falhaAd = "F. A/D";
-  static final String sobrecarga = "++OL++";
+  static const String pesoInvalido = "------";
+  static const String falhaAd = "F. A/D";
+  static const String sobrecarga = "++OL++";
 
   bool isPesoOk = false;
   int casasDecimais = 0;
@@ -32,10 +32,10 @@ class TratarPeso {
       return false;
     }
 
-    status = new String.fromCharCodes(data, 0, 1);
-    strBruto = new String.fromCharCodes(data, 2, 9).replaceAll(",", ".");
-    strTara = new String.fromCharCodes(data, 10, 17).replaceAll(",", ".");
-    strPeso = new String.fromCharCodes(data, 18, 25).replaceAll(",", ".");
+    status = String.fromCharCodes(data, 0, 1);
+    strBruto = String.fromCharCodes(data, 2, 9).replaceAll(",", ".");
+    strTara = String.fromCharCodes(data, 10, 17).replaceAll(",", ".");
+    strPeso = String.fromCharCodes(data, 18, 25).replaceAll(",", ".");
 
     if (status == "0") {
       isEstavel = true;

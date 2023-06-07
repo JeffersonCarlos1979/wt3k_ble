@@ -10,10 +10,12 @@ import 'constantes/wt3k.dart';
 //https://pub.dev/packages/flutter_blue
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -24,7 +26,7 @@ class MyApp extends StatelessWidget {
           builder: (c, snapshot) {
             final state = snapshot.data;
             if (state == BluetoothState.on) {
-              return DeviceScreen();
+              return const DeviceScreen();
             }
             return BluetoothOffScreen(state: state);
           }),
@@ -45,7 +47,7 @@ class BluetoothOffScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(
+            const Icon(
               Icons.bluetooth_disabled,
               size: 200.0,
               color: Colors.white54,
@@ -73,7 +75,7 @@ class FindDevicesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Find Devices'),
+        title: const Text('Find Devices'),
       ),
       body: RefreshIndicator(
         onRefresh: () => _startScan(),
@@ -82,7 +84,7 @@ class FindDevicesScreen extends StatelessWidget {
             children: <Widget>[
               StreamBuilder<List<ScanResult>>(
                 stream: FlutterBluePlus.instance.scanResults,
-                initialData: [],
+                initialData: const [],
                 builder: (c, snapshot) {
                   if (!snapshot.hasData) {
                     return Container();
@@ -112,13 +114,15 @@ class FindDevicesScreen extends StatelessWidget {
         builder: (c, snapshot) {
           final isScanning = snapshot.data;
           return FloatingActionButton(
-            child: isScanning == true ? Icon(Icons.stop) : Icon(Icons.search),
             onPressed: () => isScanning == null
                 ? null
                 : isScanning
                     ? FlutterBluePlus.instance.stopScan()
                     : _startScan(),
             backgroundColor: isScanning == true ? null : Colors.red,
+            child: isScanning == true
+                ? const Icon(Icons.stop)
+                : const Icon(Icons.search),
           );
         },
       ),
@@ -126,12 +130,12 @@ class FindDevicesScreen extends StatelessWidget {
   }
 
   _startScan() {
-    FlutterBluePlus.instance.startScan(timeout: Duration(seconds: 10));
+    FlutterBluePlus.instance.startScan(timeout: const Duration(seconds: 10));
   }
 }
 
 class DeviceScreen extends StatefulWidget {
-  DeviceScreen({super.key});
+  const DeviceScreen({super.key});
   @override
   State<DeviceScreen> createState() => _DeviceScreenState();
 }
@@ -168,7 +172,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
 
   double _fonteSizeTara = 0.0;
 
-  var indicador = Indicador.WT3000_IR;
+  var indicador = Indicador.wt3000Ir;
 
   StreamSubscription<List<int>>? _pesoSubscription;
   @override
@@ -184,174 +188,170 @@ class _DeviceScreenState extends State<DeviceScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Exemplo WTBT-BR"),
+        title: const Text("Exemplo WTBT-BR"),
       ),
-      body: Container(
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              //Informações do Peso
-              Expanded(
-                flex: 0,
-                child: Container(
-                  padding: EdgeInsets.only(
-                      left: paddingHorizontal, right: paddingHorizontal),
-                  height: alturaDaTela / 4,
-                  color: Colors.blue,
-                  child: Row(
-                    //Display com todas as informações de peso
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        flex: 4,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              //Tara e bateria
-                              children: [
-                                Container(
+      body: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            //Informações do Peso
+            Expanded(
+              flex: 0,
+              child: Container(
+                padding: EdgeInsets.only(
+                    left: paddingHorizontal, right: paddingHorizontal),
+                height: alturaDaTela / 4,
+                color: Colors.blue,
+                child: Row(
+                  //Display com todas as informações de peso
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            //Tara e bateria
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(_paddinPadrao),
+                                //color: Colors.green,
+                                child: ValueListenableBuilder(
+                                    valueListenable: _campoTaraNotifier,
+                                    builder: (BuildContext context,
+                                        String campoTara, _) {
+                                      return Text(
+                                        //Tara
+                                        campoTara,
+                                        style: TextStyle(
+                                          fontSize: _fonteSizeTara, //50
+                                        ),
+                                      );
+                                    }),
+                              ),
+                              Flexible(
+                                fit: FlexFit.tight,
+                                flex: 1,
+                                child: Container(
                                   padding: EdgeInsets.all(_paddinPadrao),
-                                  //color: Colors.green,
+                                  alignment: Alignment.centerRight,
+                                  //color: Colors.red,
                                   child: ValueListenableBuilder(
-                                      valueListenable: _campoTaraNotifier,
+                                      valueListenable: _bateriaNotifier,
                                       builder: (BuildContext context,
-                                          String campoTara, _) {
+                                          int imagemIndexBateria, _) {
+                                        return const SizedBox(
+                                          height: 10,
+                                        );
+                                      }),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Expanded(
+                            flex: 1,
+                            child: Row(
+                                //Estável, peso e unidade
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    //Estável
+                                    alignment: Alignment.bottomCenter,
+                                    padding: EdgeInsets.only(
+                                        bottom: _paddingVertical * 3,
+                                        left: paddingHorizontal),
+                                    //color: Colors.blue,
+                                    child: ValueListenableBuilder(
+                                      valueListenable: _isEstavelNotifier,
+                                      builder: (BuildContext context,
+                                          bool isEstavel, _) {
+                                        if (isEstavel) {
+                                          return const Image(
+                                              image: AssetImage(
+                                                  'images/estavel.png'));
+                                        } else {
+                                          //tem que retornar algo, então vou retornar uma caixa vazia
+                                          return const SizedBox(
+                                            height: 10,
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    flex: 1,
+                                    child: Container(
+                                      //Peso
+                                      alignment: Alignment.bottomRight,
+                                      padding: EdgeInsets.only(
+                                          bottom: _paddingVertical * 2,
+                                          right: paddingHorizontal),
+                                      //color: Colors.yellow,
+                                      child: ValueListenableBuilder(
+                                        valueListenable: _campoPesoNotifier,
+                                        builder: (BuildContext context,
+                                            String campoPeso, _) {
+                                          return Text(
+                                            //Peso
+                                            campoPeso,
+                                            style: TextStyle(
+                                              fontSize: _fonteSizePeso, //140
+                                            ),
+                                            textAlign: TextAlign.end,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    //Unidade
+                                    alignment: Alignment.bottomCenter,
+                                    padding: EdgeInsets.only(
+                                        bottom: _paddingVertical * 3,
+                                        right: paddingHorizontal),
+                                    child: ValueListenableBuilder(
+                                      valueListenable: _unidadeNotifier,
+                                      builder: (BuildContext context,
+                                          String unidade, _) {
                                         return Text(
-                                          //Tara
-                                          campoTara,
+                                          unidade,
                                           style: TextStyle(
                                             fontSize: _fonteSizeTara, //50
                                           ),
                                         );
-                                      }),
-                                ),
-                                Flexible(
-                                  fit: FlexFit.tight,
-                                  flex: 1,
-                                  child: Container(
-                                    padding: EdgeInsets.all(_paddinPadrao),
-                                    alignment: Alignment.centerRight,
-                                    //color: Colors.red,
-                                    child: ValueListenableBuilder(
-                                        valueListenable: _bateriaNotifier,
-                                        builder: (BuildContext context,
-                                            int imagemIndexBateria, _) {
-                                          return SizedBox(
-                                            height: 10,
-                                          );
-                                        }),
+                                      },
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Row(
-                                  //Estável, peso e unidade
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      //Estável
-                                      alignment: Alignment.bottomCenter,
-                                      padding: EdgeInsets.only(
-                                          bottom: _paddingVertical * 3,
-                                          left: paddingHorizontal),
-                                      //color: Colors.blue,
-                                      child: ValueListenableBuilder(
-                                        valueListenable: _isEstavelNotifier,
-                                        builder: (BuildContext context,
-                                            bool isEstavel, _) {
-                                          if (isEstavel) {
-                                            return Image(
-                                                image: AssetImage(
-                                                    'images/estavel.png'));
-                                          } else {
-                                            //tem que retornar algo, então vou retornar uma caixa vazia
-                                            return SizedBox(
-                                              height: 10,
-                                            );
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                    Flexible(
-                                      fit: FlexFit.tight,
-                                      flex: 1,
-                                      child: Container(
-                                        //Peso
-                                        alignment: Alignment.bottomRight,
-                                        padding: EdgeInsets.only(
-                                            bottom: _paddingVertical * 2,
-                                            right: paddingHorizontal),
-                                        //color: Colors.yellow,
-                                        child: ValueListenableBuilder(
-                                          valueListenable: _campoPesoNotifier,
-                                          builder: (BuildContext context,
-                                              String campoPeso, _) {
-                                            return Text(
-                                              //Peso
-                                              campoPeso,
-                                              style: TextStyle(
-                                                fontSize: _fonteSizePeso, //140
-                                              ),
-                                              textAlign: TextAlign.end,
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                    Container(
-                                      //Unidade
-                                      alignment: Alignment.bottomCenter,
-                                      padding: EdgeInsets.only(
-                                          bottom: _paddingVertical * 3,
-                                          right: paddingHorizontal),
-                                      child: ValueListenableBuilder(
-                                        valueListenable: _unidadeNotifier,
-                                        builder: (BuildContext context,
-                                            String unidade, _) {
-                                          return Text(
-                                            unidade,
-                                            style: TextStyle(
-                                              fontSize: _fonteSizeTara, //50
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ]),
-                            ),
-                          ],
-                        ),
+                                ]),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              _botoesTaraZero(),
-              Expanded(
-                flex: 2,
-                child: Container(
-                  color: Colors.white,
-                ),
+            ),
+            _botoesTaraZero(),
+            Expanded(
+              flex: 2,
+              child: Container(
+                color: Colors.white,
               ),
-              Container(
-                child: ElevatedButton(
-                  onPressed: () {
-                    _selecionarPlataforma(context);
-                  },
-                  child: Text(
-                    'Selecionar plataforma',
-                    style: TextStyle(fontSize: _fonteSizeTara),
-                  ),
-                ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _selecionarPlataforma(context);
+              },
+              child: Text(
+                'Selecionar plataforma',
+                style: TextStyle(fontSize: _fonteSizeTara),
               ),
-            ]),
-      ),
+            ),
+          ]),
     );
   }
 
@@ -359,11 +359,16 @@ class _DeviceScreenState extends State<DeviceScreen> {
     await _pesoCharacteristic?.setNotifyValue(false);
     _device?.disconnect();
 
-    _device = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => FindDevicesScreen()),
-    );
-    print('Device ${_device?.name}');
+    if (mounted) {
+      _device = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => FindDevicesScreen()),
+      );
+    }
+
+    if (kDebugMode) {
+      print('Device ${_device?.name}');
+    }
 
     if (_device == null) return;
 
@@ -418,7 +423,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
 
     await _pesoSubscription?.cancel();
     _pesoSubscription = _pesoCharacteristic!.value.listen((data) {
-      data.forEach((b) {
+      for (var b in data) {
         if (_posicao >= _buffer.length) _posicao = 0;
         _buffer[_posicao++] = b;
 
@@ -448,16 +453,16 @@ class _DeviceScreenState extends State<DeviceScreen> {
             _posicao = 0;
           }
         }
-      });
+      }
     });
   }
 
   Future<void> _tarar() async {
-    _enviarComando("${Comandos.tarar}");
+    _enviarComando(Comandos.tarar);
   }
 
   Future<void> _zerar() async {
-    _enviarComando("${Comandos.zerar}");
+    _enviarComando(Comandos.zerar);
   }
 
   Future<void> _enviarComando(String commandData) async {
@@ -466,7 +471,9 @@ class _DeviceScreenState extends State<DeviceScreen> {
     try {
       _pesoCharacteristic?.write(buff);
     } catch (e) {
-      print(e);
+      if (kDebugMode) {
+        print(e);
+      }
     }
   }
 
@@ -474,8 +481,8 @@ class _DeviceScreenState extends State<DeviceScreen> {
     /*
     Só exibe os botões se for o WT3000-IR pois, o WT3000-I-Pro não aceita comandos.
      */
-    if (indicador == Indicador.WT3000_IR) {
-      return SizedBox(
+    if (indicador == Indicador.wt3000Ir) {
+      return const SizedBox(
         height: 10,
       );
     }
